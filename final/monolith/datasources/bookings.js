@@ -83,13 +83,24 @@ class BookingsDb {
     return listingId;
   }
 
+  async updateBookingStatus({ bookingId, status }) {
+    const booking = await this.db.Booking.findByPk(bookingId);
+    if (!booking) {
+      throw new Error("Booking not found");
+    }
+    booking.status = status;
+    await booking.save();
+    return booking.dataValues;
+  }
+
   // using the checkInDate and checkOutDate, return true if listing is available and false if not
   async isListingAvailable({ listingId, checkInDate, checkOutDate }) {
-    const { between, or } = this.db.Sequelize.Op;
+    const { between, or, in: opIn } = this.db.Sequelize.Op;
 
     const bookings = await this.db.Booking.findAll({
       where: {
         listingId: listingId,
+        status: { [opIn]: ["UPCOMING", "CURRENT"] },
         [or]: [
           { checkInDate: { [between]: [checkInDate, checkOutDate] } },
           { checkOutDate: { [between]: [checkInDate, checkOutDate] } },

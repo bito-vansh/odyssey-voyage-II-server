@@ -201,6 +201,69 @@ const resolvers = {
         };
       }
     },
+    cancelBooking: async (_, { bookingId }, { dataSources, userId }) => {
+      if (!userId) throw AuthenticationError();
+
+      const booking = await dataSources.bookingsDb.getBooking(bookingId);
+      if (!booking) {
+        return {
+          code: 404,
+          success: false,
+          message: "Booking not found.",
+        };
+      }
+
+      if (booking.guestId !== userId) {
+        return {
+          code: 403,
+          success: false,
+          message: "You do not have permission to cancel this booking.",
+        };
+      }
+
+      if (booking.status !== "UPCOMING") {
+        return {
+          code: 400,
+          success: false,
+          message: "Only upcoming bookings can be cancelled.",
+        };
+      }
+
+      // Update status first to prevent double-refund on retry
+      try {
+        await dataSources.bookingsDb.updateBookingStatus({
+          bookingId,
+          status: "CANCELLED",
+        });
+      } catch (err) {
+        return {
+          code: 400,
+          success: false,
+          message: err.message,
+        };
+      }
+
+      try {
+        await dataSources.paymentsAPI.addFunds({
+          userId,
+          amount: booking.totalCost,
+        });
+      } catch (e) {
+        return {
+          code: 200,
+          success: true,
+          message:
+            "Your booking has been cancelled. Refund processing is delayed — please try again or contact support.",
+        };
+      }
+
+      return {
+        code: 200,
+        success: true,
+        message:
+          "Your booking has been cancelled and a full refund has been issued.",
+      };
+    },
     createListing: async (
       _,
       { listing },
