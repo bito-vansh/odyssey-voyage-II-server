@@ -42,6 +42,8 @@ type Mutation {
 
   ### Bookings
   createBooking(createBookingInput: CreateBookingInput): CreateBookingResponse!
+  "Cancels an upcoming booking and refunds the guest"
+  cancelBooking(bookingId: ID!): CancelBookingResponse!
 
   ### Reviews
   "Creates reviews for both host and listing for a particular booking - must be authored by guest of past booking"
@@ -300,6 +302,7 @@ enum BookingStatus {
   CURRENT
   COMPLETED
   UPCOMING
+  CANCELLED
 }
 
 "Fields for creating a booking"
@@ -329,6 +332,16 @@ type CreateBookingResponse implements MutationResponse {
   message: String!
   "The newly-created booking"
   booking: NewBookingResponse
+}
+
+"The response after cancelling a booking."
+type CancelBookingResponse implements MutationResponse {
+  "Similar to HTTP status code, represents the status of the mutation"
+  code: Int!
+  "Indicates whether the mutation was successful"
+  success: Boolean!
+  "Human-readable message for the UI"
+  message: String!
 }
 
 ### Reviews
