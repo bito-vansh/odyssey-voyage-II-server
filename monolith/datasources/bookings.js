@@ -84,6 +84,10 @@ class BookingsDb {
   }
 
   async updateBookingStatus({ bookingId, status }) {
+    const validStatuses = ["UPCOMING", "CURRENT", "COMPLETED", "CANCELLED"];
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Invalid status: ${status}`);
+    }
     const booking = await this.db.Booking.findByPk(bookingId);
     if (!booking) {
       throw new Error("Booking not found");
